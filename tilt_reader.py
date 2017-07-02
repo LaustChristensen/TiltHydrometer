@@ -10,6 +10,17 @@ updateSecs = 600 #time in seconds between updating the google sheet
 screenSecs = 3000 #time in miliseconds until blanking the display
 initialSG = float(1050)/1000
 
+#Assign uuid's of various colour tilt hydrometers. BLE devices like the tilt work primarily using advertisements. 
+#The first section of any advertisement is the universally unique identifier. Tilt uses a particular identifier based on the colour of the device
+red    	= 'a495bb10c5b14b44b5121370f02d74de'
+green  	= 'a495bb20c5b14b44b5121370f02d74de'
+black  	= 'a495bb30c5b14b44b5121370f02d74de'
+purple 	= 'a495bb40c5b14b44b5121370f02d74de'
+orange 	= 'a495bb50c5b14b44b5121370f02d74de'
+blue   	= 'a495bb60c5b14b44b5121370f02d74de'
+yellow 	= 'a495bb70c5b14b44b5121370f02d74de'
+pink   	= 'a495bb80c5b14b44b5121370f02d74de'
+
 ##GUI definitions
 win = Tk()
 win.title("Tilt reader")
