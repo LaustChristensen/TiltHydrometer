@@ -4,11 +4,12 @@ import datetime
 import time
 from time import strftime, gmtime
 import requests
+import blescan
+import bluetooth._bluetooth as bluez
 
 ## variables
 updateSecs = 600 #time in seconds between updating the google sheet
-screenSecs = 3000 #time in miliseconds until blanking the display
-initialSG = float(1050)/1000
+screenSecs = 10000 #time in miliseconds until blanking the display
 
 #Assign uuid's of various colour tilt hydrometers. BLE devices like the tilt work primarily using advertisements. 
 #The first section of any advertisement is the universally unique identifier. Tilt uses a particular identifier based on the colour of the device
@@ -20,6 +21,9 @@ orange 	= 'a495bb50c5b14b44b5121370f02d74de'
 blue   	= 'a495bb60c5b14b44b5121370f02d74de'
 yellow 	= 'a495bb70c5b14b44b5121370f02d74de'
 pink   	= 'a495bb80c5b14b44b5121370f02d74de'
+
+#The default device for bluetooth scan. If you're using a bluetooth dongle you may have to change this.
+dev_id = 0
 
 ##GUI definitions
 win = Tk()
@@ -37,19 +41,62 @@ def sheetsDate(date1):
 	return float(delta.days) + (float(delta.seconds) / 86400)
 
 def updateData():
-    theTime.set(strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime()))
-    theTemp.set("25")
-    theSG.set(initialSG)
-    theColour.set("Black")
-    theBeer.set("Test beer")
+        data = getdata()
+	tempc = (float(data["Temp"])-32)*5/9 #convert from string to float and then farenheit to celcius just for the display
+	tempc = round(tempc) 			#Round of the value to 2 decimal places
+	#tiltSG = data['SG']
+	#theColour = data['tiltColour']
+	#theBeer = data['tiltBeer']
+        theTime.set(strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime()))
+        
+        theTemp.set(tempc)
+        theSG.set(data['SG'])
+        theColour.set(data['tiltColour'])
+        theBeer.set(data['tiltBeer'])
+        r = requests.post(' https://script.google.com/macros/s/AKfycbxRQTGJpyijaF-KCaIpuoK_Uld6cVXa4bJqw5I-xYIzgaXNDg0/exec', data)
 
 def updateLoop():
     updateData()
     win.after(screenSecs, updateLoop)
             
-def calcSG(sg):
-        return sg-float(1/1000)
+#scan BLE advertisements until we see one matching our tilt uuid
+def getdata():
+	try:
+		sock = bluez.hci_open_dev(dev_id)
+	except:
+		print "error accessing bluetooth device..."
+		sys.exit(1)
+	blescan.hci_le_set_scan_parameters(sock)
+	blescan.hci_enable_le_scan(sock)
+	gotData = 0
+	while (gotData == 0):
+		returnedList = blescan.parse_events(sock, 10)
+		for beacon in returnedList:			#returnedList is a list datatype of string datatypes seperated by commas (,)
+			output = beacon.split(',')		#split the list into individual strings in an array
+			if output[1] == black:			#Change this to the colour of you tilt
+				tempf = float(output[2])	#convert the string for the temperature to a float type
+				#tempc = (float(output[2]) - 32)*5/9
+				#tempc = round(tempc)
 
+				gotData = 1
+
+				tiltTime = sheetsDate(datetime.datetime.now())
+				tiltSG = float(output[3])/1000
+				tiltTemp = tempf
+				tiltColour = 'BLACK'
+				tiltBeer = 'test' #Change to an identifier of a particular brew
+
+	#assign values to a dictionary variable for the http POST to google sheet
+	data= 	{
+			'Time': tiltTime,
+			'SG': tiltSG,
+			'Temp': tiltTemp,
+			'Color': tiltColour,
+			'Beer': tiltBeer,
+			'Comment': ""
+			}
+	blescan.hci_disable_le_scan(sock)
+	return data
 
 ## variable variables
 theTime = StringVar()
@@ -59,7 +106,6 @@ theColour = StringVar()
 theBeer = StringVar()
 
 ## Widgets
-
 def main():
     myTime = Label(win, textvariable = theTime)
     myTime.pack()
