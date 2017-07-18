@@ -89,7 +89,7 @@ def getdata():
 
     #assign values to a dictionary variable for the http POST to google sheet
     data=   {
-            'Time': tiltTime,
+            'Timepoint': tiltTime,
             'SG': tiltSG,
             'Temp': tiltTemp,
             'Color': tiltColour,
